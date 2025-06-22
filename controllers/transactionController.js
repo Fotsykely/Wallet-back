@@ -57,3 +57,15 @@ exports.deleteTransaction = (req, res) => {
     res.json({ message: `Transaction ${id} supprimée avec succès.` });
   });
 };
+
+exports.getTransactionsByAccountId = (req, res) => {
+  const accountId = req.params.accountId;
+  if (!accountId) {
+    return res.status(400).json({ error: 'accountId requis.' });
+  }
+  // Passe les query params au modèle
+  Transaction.getByAccountId(accountId, req.query, (err, transactions) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(transactions);
+  });
+};

@@ -1,4 +1,5 @@
 const db = require('../database/database');
+const { buildDateFilters } = require('../utils/queryFilters');
 
 exports.create = (transaction, callback) => {
   const { account_id, date, category, description, amount } = transaction;
@@ -57,6 +58,24 @@ exports.delete = (id, callback) => {
   });
 };
 
+exports.getByAccountId = (accountId, query = {}, callback) => {
+  let sql = `SELECT * FROM transactions WHERE account_id = ?`;
+  const params = [accountId];
+
+  // Ajout des filtres dynamiques
+  const { filters, params: filterParams } = buildDateFilters(query, 'date');
+  if (filters.length > 0) {
+    sql += ' AND ' + filters.join(' AND ');
+    params.push(...filterParams);
+  }
+
+  sql += ' ORDER BY date DESC';
+
+  db.all(sql, params, (err, rows) => {
+    if (err) return callback(err);
+    callback(null, rows);
+  });
+};
 
 
 

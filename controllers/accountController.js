@@ -62,3 +62,20 @@ exports.deleteAccount = (req, res) => {
     res.json({ message: `Compte ${id} supprimé avec succès.` });
   });
 };
+
+exports.getAccountDetailsById = (req, res) => {
+  const id = req.params.id;
+  Account.getAccountDetailsById(id, (err, details) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!details) return res.status(404).json({ error: 'Compte non trouvé.' });
+    res.json(details);
+  });
+};
+
+exports.getAnalysis = (req, res) => {
+  const accountId = req.params.id;
+  Account.getAnalysis(accountId, req.query, (err, data) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(data);
+  });
+};

@@ -1,4 +1,6 @@
 const db = require('../database/database');
+const { buildDateFilters } = require('../utils/queryFilters');
+const { format, subDays, addDays } = require('date-fns');
 
 exports.getBalances = (callback) => {
   const sql = `
@@ -67,5 +69,98 @@ exports.delete = (id, callback) => {
   db.run(sql, [id], function(err) {
     if (err) return callback(err);
     callback(null);
+  });
+};
+
+exports.getAccountDetailsById = (id, callback) => {
+  const sql = `
+    SELECT 
+      a.*, 
+      IFNULL(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) as income,
+      IFNULL(SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END), 0) as expense,
+      IFNULL(SUM(t.amount), 0) as balance
+    FROM accounts a
+    LEFT JOIN transactions t ON a.id = t.account_id
+    WHERE a.id = ?
+    GROUP BY a.id
+  `;
+  db.get(sql, [id], (err, row) => {
+    if (err) return callback(err);
+    if (!row) return callback(null, null);
+    callback(null, {
+      account: {
+        id: row.id,
+        name: row.name,
+        type: row.type
+      },
+      balance: row.balance,
+      income: row.income,
+      expense: row.expense
+    });
+  });
+};
+
+exports.getAnalysis = (accountId, query, callback) => {
+  // 1. Générer les filtres dynamiques pour la période
+  const { filters, params } = buildDateFilters(query, 'date');
+  let sql = `
+    SELECT 
+      date,
+      SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as Revenus,
+      SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END) as Dépenses
+    FROM transactions
+    WHERE account_id = ?
+  `;
+  const sqlParams = [accountId, ...params];
+  if (filters.length > 0) {
+    sql += ' AND ' + filters.join(' AND ');
+  }
+  sql += ' GROUP BY date ORDER BY date ASC';
+
+  // 2. Déterminer la période demandée
+  let maxDate = parseInt(query.maxDate, 10) || 6;
+  const today = new Date();
+  const start = subDays(today, maxDate);
+  const startDateStr = format(start, 'yyyy-MM-dd');
+
+  // 3. Calculer le solde initial avant la période
+  const balanceSql = `
+    SELECT IFNULL(SUM(amount), 0) as initialBalance
+    FROM transactions
+    WHERE account_id = ?
+      AND date < ?
+  `;
+  db.get(balanceSql, [accountId, startDateStr], (err, balanceRow) => {
+    if (err) return callback(err);
+
+    const initialBalance = balanceRow.initialBalance || 0;
+
+    // 4. Récupérer les transactions agrégées par jour sur la période
+    db.all(sql, sqlParams, (err, rows) => {
+      if (err) return callback(err);
+
+      // 5. Générer tous les jours de la période (pour les jours sans transaction)
+      const days = [];
+      for (let i = 0; i <= maxDate; i++) {
+        days.push(format(addDays(start, i), 'yyyy-MM-dd'));
+      }
+
+      // 6. Calcul du solde cumulé
+      let balance = initialBalance;
+      const result = days.map(day => {
+        const found = rows.find(r => r.date === day);
+        const revenus = found ? found.Revenus : 0;
+        const depenses = found ? found.Dépenses : 0;
+        balance += revenus - depenses;
+        return {
+          day: format(new Date(day), 'dd MMM'),
+          Revenus: revenus,
+          Dépenses: depenses,
+          Balance: balance
+        };
+      });
+
+      callback(null, result);
+    });
   });
 };

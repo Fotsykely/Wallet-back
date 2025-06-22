@@ -7,5 +7,6 @@ router.get('/', transactionController.getAllTransactions);
 router.get('/:id', transactionController.getTransactionById);
 router.patch('/:id', transactionController.updateTransaction);
 router.delete('/:id', transactionController.deleteTransaction);
+router.get('/account/:accountId', transactionController.getTransactionsByAccountId);
 
 module.exports = router;
