@@ -164,3 +164,107 @@ exports.getAnalysis = (accountId, query, callback) => {
     });
   });
 };
+
+exports.getAccountDetailsWithPercentages = (accountId, comparisonDays, callback) => {
+  // console.log(`Calcul KPIs pour le compte ${accountId} avec ${comparisonDays} jours de comparaison`);
+  
+  // D'abord, récupérer les détails de base
+  this.getAccountDetailsById(accountId, (err, accountDetails) => {
+    if (err) return callback(err);
+    if (!accountDetails) return callback(null, null);
+
+    // Ensuite, calculer les pourcentages
+    const today = new Date();
+    const periodStart = new Date(today);
+    periodStart.setDate(today.getDate() - comparisonDays);
+    
+    const previousPeriodStart = new Date(periodStart);
+    previousPeriodStart.setDate(periodStart.getDate() - comparisonDays);
+    
+    const formatDate = (date) => date.toISOString().slice(0, 10);
+    
+    // console.log('Période actuelle:', formatDate(periodStart), 'à', formatDate(today));
+    // console.log('Période précédente:', formatDate(previousPeriodStart), 'à', formatDate(periodStart));
+    
+    // Requête pour période actuelle
+    const currentPeriodSql = `
+      SELECT 
+        IFNULL(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as currentIncome,
+        IFNULL(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) as currentExpense
+      FROM transactions
+      WHERE account_id = ? AND date >= ? AND date <= ?
+    `;
+    
+    // Requête pour période précédente
+    const previousPeriodSql = `
+      SELECT 
+        IFNULL(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as previousIncome,
+        IFNULL(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) as previousExpense
+      FROM transactions
+      WHERE account_id = ? AND date >= ? AND date < ?
+    `;
+    
+    db.get(currentPeriodSql, [accountId, formatDate(periodStart), formatDate(today)], (err, currentData) => {
+      if (err) {
+        // console.error('Erreur requête période actuelle:', err);
+        return callback(err);
+      }
+      
+      // console.log('Données période actuelle:', currentData);
+      
+      db.get(previousPeriodSql, [accountId, formatDate(previousPeriodStart), formatDate(periodStart)], (err, previousData) => {
+        if (err) {
+          // console.error('Erreur requête période précédente:', err);
+          return callback(err);
+        }
+        
+        // console.log('Données période précédente:', previousData);
+        
+        // Calculer les pourcentages
+        const calculatePercentage = (current, previous) => {
+          if (!previous || previous === 0) {
+            return current > 0 ? '+100.0%' : '+0.0%';
+          }
+          const change = ((current - previous) / previous) * 100;
+          const sign = change >= 0 ? '+' : '';
+          return `${sign}${change.toFixed(1)}%`;
+        };
+        
+        const incomePercentage = calculatePercentage(
+          currentData.currentIncome, 
+          previousData.previousIncome
+        );
+        
+        const expensePercentage = calculatePercentage(
+          currentData.currentExpense, 
+          previousData.previousExpense
+        );
+        
+        // Enrichir les données existantes avec les pourcentages
+        const enrichedData = {
+          ...accountDetails,
+          incomePercentage,
+          expensePercentage,
+          kpiDetails: {
+            currentPeriod: {
+              income: currentData.currentIncome,
+              expense: currentData.currentExpense
+            },
+            previousPeriod: {
+              income: previousData.previousIncome,
+              expense: previousData.previousExpense
+            },
+            periodInfo: {
+              comparisonDays,
+              currentPeriod: { start: formatDate(periodStart), end: formatDate(today) },
+              previousPeriod: { start: formatDate(previousPeriodStart), end: formatDate(periodStart) }
+            }
+          }
+        };
+        
+        // console.log('Données enrichies avec pourcentages:', enrichedData);
+        callback(null, enrichedData);
+      });
+    });
+  });
+};

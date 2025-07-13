@@ -65,11 +65,24 @@ exports.deleteAccount = (req, res) => {
 
 exports.getAccountDetailsById = (req, res) => {
   const id = req.params.id;
-  Account.getAccountDetailsById(id, (err, details) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!details) return res.status(404).json({ error: 'Compte non trouvé.' });
-    res.json(details);
-  });
+  const includePercentages = req.query.includePercentages === 'true';
+  const comparisonDays = parseInt(req.query.comparisonDays, 10) || 30;
+
+  if (includePercentages) {
+    // Nouvelle logique avec pourcentages
+    Account.getAccountDetailsWithPercentages(id, comparisonDays, (err, details) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!details) return res.status(404).json({ error: 'Compte non trouvé.' });
+      res.json(details);
+    });
+  } else {
+    // Logique existante (pour compatibilité)
+    Account.getAccountDetailsById(id, (err, details) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!details) return res.status(404).json({ error: 'Compte non trouvé.' });
+      res.json(details);
+    });
+  }
 };
 
 exports.getAnalysis = (req, res) => {
