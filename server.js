@@ -1,10 +1,19 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+// Récupérer le userDataPath passé par Electron
+const userDataPath = process.argv[2];
+console.log('Server started with userDataPath:', userDataPath);
+
+// Passer le userDataPath à la base de données via une variable d'environnement
+if (userDataPath) {
+  process.env.USER_DATA_PATH = userDataPath;
+}
+
 const db = require('./database/database');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
