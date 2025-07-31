@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Exécute tous les jours à 00:30
+// Exécute tous les jours à 00:3
 cron.schedule('30 0 * * *', () => {
   recurringExecutionService.executeTodayRecurrings((err, res) => {
     if (err) console.error('Erreur exécution récurrences:', err);
