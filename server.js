@@ -34,6 +34,9 @@ app.use('/api/expenses', expenseRoutes);
 const debtRoutes = require('./routes/debt');
 app.use('/api/debts', debtRoutes);
 
+const recurringRoutes = require('./routes/recurring');
+app.use('/api/recurrings', recurringRoutes);
+
 app.get('/', (req, res) => {
   res.send('API Wallet opérationnelle 🚀');
 })

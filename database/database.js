@@ -20,6 +20,7 @@ const db = new sqlite3.Database(dbPath);
 
 // Création des tables
 db.serialize(() => {
+  // Création de la table accounts
   db.run(`
     CREATE TABLE IF NOT EXISTS accounts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,6 +29,7 @@ db.serialize(() => {
     )
   `);
 
+  // Création de la table transactions
   db.run(`
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,6 +42,7 @@ db.serialize(() => {
     )
   `);
 
+  //creation de la table income
   db.run(`
     CREATE TABLE IF NOT EXISTS incomes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,6 +54,7 @@ db.serialize(() => {
     )
   `);
 
+  // Création de la table expenses
   db.run(`
     CREATE TABLE IF NOT EXISTS expenses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,6 +66,7 @@ db.serialize(() => {
     )
   `);
 
+  // Création de la table debts
   db.run(`
     CREATE TABLE IF NOT EXISTS debts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,6 +76,20 @@ db.serialize(() => {
       amount REAL NOT NULL,
       date_issued TEXT NOT NULL,
       status TEXT
+    )
+  `);
+
+  // Création de la table recurring_operations
+  db.run(`
+    CREATE TABLE IF NOT EXISTS recurring_operations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id INTEGER,
+      type TEXT NOT NULL, -- 'income' ou 'expense'
+      description TEXT NOT NULL,
+      amount REAL NOT NULL,
+      recurrence TEXT NOT NULL, -- 'monthly', 'weekly', etc.
+      recurrence_date INTEGER,   -- jour du mois ou de la semaine
+      FOREIGN KEY(account_id) REFERENCES accounts(id)
     )
   `);
 
