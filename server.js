@@ -1,8 +1,12 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const recurringExecutionService = require('./services/recurringExecutionService');
+const cron = require('node-cron');
 // Récupérer le userDataPath passé par Electron
 const userDataPath = process.argv[2];
+
+
 console.log('Server started with userDataPath:', userDataPath);
 
 // Passer le userDataPath à la base de données via une variable d'environnement
@@ -17,6 +21,14 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// Exécute tous les jours à 00:30
+cron.schedule('30 0 * * *', () => {
+  recurringExecutionService.executeTodayRecurrings((err, res) => {
+    if (err) console.error('Erreur exécution récurrences:', err);
+    else console.log('Récurrences exécutées:', res);
+  });
+});
 
 //routes
 const transactionsRoutes = require('./routes/transactions');
