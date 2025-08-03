@@ -23,7 +23,7 @@ exports.getRecurringById = (req, res) => {
 };
 
 exports.getRecurringByAccountId = (req, res) => {
-  RecurringOperation.getByAccountId(req.params.accountId, (err, ops) => {
+  RecurringOperation.getByAccountId(req.params.accountId, req.query, (err, ops) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(ops);
   });

@@ -89,6 +89,7 @@ db.serialize(() => {
       amount REAL NOT NULL,
       recurrence TEXT NOT NULL, -- 'monthly', 'weekly', etc.
       recurrence_date INTEGER,   -- jour du mois ou de la semaine
+      created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY(account_id) REFERENCES accounts(id)
     )
   `);
