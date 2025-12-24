@@ -94,6 +94,17 @@ db.serialize(() => {
     )
   `);
 
+  // Creation of the table budgets
+  db.run(`
+    CREATE TABLE IF NOT EXISTS budgets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id INTEGER,
+      month TEXT NOT NULL, -- format 'YYYY-MM'
+      amount REAL NOT NULL, -- Le plafond (ex: 500000)
+      FOREIGN KEY(account_id) REFERENCES accounts(id)
+    )
+  `);
+
   db.get("SELECT * FROM accounts WHERE id = 1", (err, row) => {
     if (!err && !row) {
       console.log('Account with ID 1 not found, creating default account...');
