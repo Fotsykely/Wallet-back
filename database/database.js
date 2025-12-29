@@ -38,6 +38,7 @@ db.serialize(() => {
       category TEXT,
       description TEXT,
       amount REAL NOT NULL,
+      is_recurring INTEGER DEFAULT 0, -- 0 = Manuelle, 1 = Automatique
       FOREIGN KEY(account_id) REFERENCES accounts(id)
     )
   `);

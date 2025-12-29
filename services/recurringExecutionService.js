@@ -24,10 +24,13 @@ exports.executeTodayRecurrings = (callback) => {
         const transaction = {
           account_id: rec.account_id,
           date: new Date().toISOString().slice(0, 10),
-          category: rec.type,
+          category: rec.type, // ex: 'expense' or 'income'
           description: rec.description,
-          amount: rec.type === 'income' ? Math.abs(rec.amount) : -Math.abs(rec.amount)
+          // Gestion du signe selon le type
+          amount: rec.type === 'income' ? Math.abs(rec.amount) : -Math.abs(rec.amount),
+          is_recurring: 1 // Marked transaction as recurring
         };
+        
         Transaction.create(transaction, (err) => {
           if (err) console.error('Erreur création transaction récurrente:', err);
         });

@@ -76,8 +76,17 @@ exports.getAccountDetailsById = (id, callback) => {
   const sql = `
     SELECT 
       a.*, 
+      -- Revenus : On prend tout (Salaires inclus)
       IFNULL(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) as income,
-      IFNULL(SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END), 0) as expense,
+      
+      -- Dépenses : On EXCLUT les récurrences (Loyer, Spotify...) pour le calcul du budget variable
+      IFNULL(SUM(CASE 
+        WHEN t.amount < 0 AND (t.is_recurring IS NULL OR t.is_recurring = 0) 
+        THEN t.amount 
+        ELSE 0 
+      END), 0) as expense,
+      
+      -- Solde : On prend TOUT pour avoir le vrai montant disponible sur le compte
       IFNULL(SUM(t.amount), 0) as balance
     FROM accounts a
     LEFT JOIN transactions t ON a.id = t.account_id
