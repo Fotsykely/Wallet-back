@@ -22,8 +22,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Exécute tous les jours à 00:3
-cron.schedule('30 0 * * *', () => {
+// Exécute tous les jours à 09:00
+cron.schedule('0 9 * * *', () => {
   recurringExecutionService.executeTodayRecurrings((err, res) => {
     if (err) console.error('Erreur exécution récurrences:', err);
     else console.log('Récurrences exécutées:', res);
@@ -55,6 +55,29 @@ app.use('/api/budgets', budgetRoutes);
 app.get('/', (req, res) => {
   res.send('API Wallet opérationnelle 🚀');
 })
+
+// Execute missed recurrings since last run date stored in a file
+{
+  const fs = require('fs');
+  const path = require('path');
+
+  const userData = process.env.USER_DATA_PATH || process.cwd();
+  const lastRunFile = path.join(userData, 'last_recurrence_run.txt');
+
+  const lastRunDate = fs.existsSync(lastRunFile) ? fs.readFileSync(lastRunFile, 'utf8').trim() : null;
+
+  recurringExecutionService.executeMissedRecurrings(lastRunDate, (err, res) => {
+    if (err) console.error('Erreur exécution récurrences manquées au démarrage:', err);
+    else {
+      console.log('Récurrences manquées exécutées au démarrage:', res);
+      try {
+        fs.writeFileSync(lastRunFile, new Date().toISOString().slice(0,10));
+      } catch (e) {
+        console.error('Impossible d\'écrire last_recurrence_run:', e);
+      }
+    }
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server run  on http://localhost:${PORT}`);

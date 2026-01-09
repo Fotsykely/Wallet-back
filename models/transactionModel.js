@@ -83,6 +83,19 @@ const Transaction = {
       callback(null, rows);
     });
   },
+
+  // check if a transaction exists for a given recurring, to avoid duplicates (account_id, date, description, amount)
+  existsForRecurring: (account_id, date, description, amount, callback) => {
+    const sql = `
+      SELECT id FROM transactions
+      WHERE account_id = ? AND date = ? AND description = ? AND amount = ?
+      LIMIT 1
+    `;
+    db.get(sql, [account_id, date, description, amount], (err, row) => {
+      if (err) return callback(err);
+      callback(null, !!row);
+    });
+  },
 };
 
 module.exports = Transaction;
