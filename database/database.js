@@ -106,6 +106,14 @@ db.serialize(() => {
     )
   `);
 
+  // Creation of the table settings (las t recurrence run date, etc.)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+
   db.get("SELECT * FROM accounts WHERE id = 1", (err, row) => {
     if (!err && !row) {
       console.log('Account with ID 1 not found, creating default account...');

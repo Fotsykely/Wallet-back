@@ -56,26 +56,31 @@ app.get('/', (req, res) => {
   res.send('API Wallet opérationnelle 🚀');
 })
 
-// Execute missed recurrings since last run date stored in a file
+// Execute missed recurrings using DB-stored last run (instead of file)
 {
-  const fs = require('fs');
-  const path = require('path');
+  const key = 'last_recurrence_run';
 
-  const userData = process.env.USER_DATA_PATH || process.cwd();
-  const lastRunFile = path.join(userData, 'last_recurrence_run.txt');
-
-  const lastRunDate = fs.existsSync(lastRunFile) ? fs.readFileSync(lastRunFile, 'utf8').trim() : null;
-
-  recurringExecutionService.executeMissedRecurrings(lastRunDate, (err, res) => {
-    if (err) console.error('Erreur exécution récurrences manquées au démarrage:', err);
-    else {
-      console.log('Récurrences manquées exécutées au démarrage:', res);
-      try {
-        fs.writeFileSync(lastRunFile, new Date().toISOString().slice(0,10));
-      } catch (e) {
-        console.error('Impossible d\'écrire last_recurrence_run:', e);
-      }
+  db.get('SELECT value FROM settings WHERE key = ?', [key], (err, row) => {
+    if (err) {
+      console.error('Erreur lecture settings:', err);
+      // fallback: call with null to use default lookback
+      recurringExecutionService.executeMissedRecurrings(null, () => {});
+      return;
     }
+
+    const lastRun = row ? row.value : null;
+
+    recurringExecutionService.executeMissedRecurrings(lastRun, (err2, res) => {
+      if (err2) console.error('Erreur exécution récurrences manquées au démarrage:', err2);
+      else {
+        console.log('Récurrences manquées exécutées au démarrage:', res);
+        const nowIso = new Date().toISOString();
+        // upsert last run
+        db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, nowIso], (e) => {
+          if (e) console.error('Impossible de sauvegarder last_recurrence_run dans settings:', e);
+        });
+      }
+    });
   });
 }
 
