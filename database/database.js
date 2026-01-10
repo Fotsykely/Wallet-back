@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 // Récupérer le chemin userData depuis la variable d'environnement
-const userDataPath = process.env.USER_DATA_PATH;
+const userDataPath = process.env.USER_DATA_PATH || process.argv[2];
 
 // Choisir le chemin de la base de données
 let dbPath;
