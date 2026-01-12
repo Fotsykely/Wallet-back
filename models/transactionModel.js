@@ -96,6 +96,42 @@ const Transaction = {
       callback(null, !!row);
     });
   },
+
+  getSpentForMonth: (accountId, month, callback) => {
+    // month = 'YYYY-MM'
+    const like = `${month}-%`;
+    const sql = `
+      SELECT IFNULL(SUM(CASE WHEN amount < 0 AND (is_recurring IS NULL OR is_recurring = 0) THEN ABS(amount) ELSE 0 END), 0) as spent
+      FROM transactions
+      WHERE account_id = ? AND date LIKE ?
+    `;
+    db.get(sql, [accountId, like], (err, row) => {
+      if (err) return callback(err);
+      callback(null, row?.spent ?? 0);
+    });
+  },
+
+  getByAccount: (accountId, filter = {}, callback) => {
+    const { filters, params } = buildDateFilters(filter, 'date');
+    
+    let sql = `
+      SELECT * FROM transactions
+      WHERE account_id = ?
+    `;
+    const queryParams = [accountId];
+
+    if (filters.length > 0) {
+      sql += ` AND ${filters.join(' AND ')}`;
+      queryParams.push(...params);
+    }
+
+    sql += ` ORDER BY date DESC`;
+
+    db.all(sql, queryParams, (err, rows) => {
+      if (err) return callback(err);
+      callback(null, rows || []);
+    });
+  },
 };
 
 module.exports = Transaction;

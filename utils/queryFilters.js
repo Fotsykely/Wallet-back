@@ -2,22 +2,43 @@ function buildDateFilters(query, dateField = 'date') {
   const filters = [];
   const params = [];
 
-  // maxDate = nombre de jours dans le passé (ex: 5 => du 12 au 16 si on est le 17)
-  if (query.maxDate) {
-    filters.push(`${dateField} >= date('now', ?)`);
-    params.push(`-${parseInt(query.maxDate, 10)} days`);
-    filters.push(`${dateField} <= date('now')`);
-    // pas de paramètre pour date('now')
+  // Filtre par mois (YYYY-MM)
+  if (query.month) {
+    filters.push(`${dateField} LIKE ?`);
+    params.push(`${query.month}-%`);
   }
-  // minDate = nombre de jours dans le futur (optionnel)
-  if (query.minDate) {
-    filters.push(`${dateField} >= date('now', ?)`);
-    params.push(`+${parseInt(query.minDate, 10)} days`);
+  
+  // Filter by year if month is not provided (YYYY)
+  else if (query.year) {
+    filters.push(`${dateField} LIKE ?`);
+    params.push(`${query.year}-%`);
   }
-  // date exacte (optionnel)
+
+  // Filter by exact date
   if (query.date) {
     filters.push(`${dateField} = ?`);
     params.push(query.date);
+  }
+
+  // Filter for last N days
+  if (query.maxDate) {
+    const maxDate = parseInt(query.maxDate, 10);
+    if (!isNaN(maxDate)) {
+      filters.push(`${dateField} >= date('now', '-${maxDate} days')`);
+    }
+  }
+
+  // Filter startDate / minDate
+  if (query.startDate || query.minDate) {
+    const startDate = query.startDate || query.minDate;
+    filters.push(`${dateField} >= ?`);
+    params.push(startDate);
+  }
+
+  // Filter endDate
+  if (query.endDate) {
+    filters.push(`${dateField} <= ?`);
+    params.push(query.endDate);
   }
 
   return { filters, params };
