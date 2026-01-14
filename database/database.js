@@ -119,11 +119,23 @@ db.serialize(() => {
     )
   `);
 
-  // Creation of the table settings (las t recurrence run date, etc.)
+  // Creation of the table settings
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT
+    )
+  `);
+
+  // Notification Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL, -- 'success', 'info', 'warning', 'error'
+      title TEXT,
+      message TEXT NOT NULL,
+      read INTEGER DEFAULT 0, -- 0 = false, 1 = true
+      created_at TEXT DEFAULT (datetime('now'))
     )
   `);
 
