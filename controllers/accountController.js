@@ -45,13 +45,19 @@ exports.getAccountById = (req, res) => {
 
 exports.updateAccount = (req, res) => {
   const id = req.params.id;
-  const { name, type } = req.body;
-  if (!name || !type) {
-    return res.status(400).json({ error: 'Le nom et le type sont requis.' });
-  }
-  Account.update(id, { name, type }, (err, account) => {
+  // Récupérer l'existant puis merger les champs fournis (permet update partiel)
+  Account.getById(id, (err, existing) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(account);
+    if (!existing) return res.status(404).json({ error: 'Compte non trouvé.' });
+
+    const name = req.body.name ?? existing.name;
+    const type = req.body.type ?? existing.type;
+    const email = req.body.email ?? existing.email;
+
+    Account.update(id, { name, type, email }, (err, account) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(account);
+    });
   });
 };
 

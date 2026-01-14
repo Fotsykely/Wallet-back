@@ -29,6 +29,19 @@ db.serialize(() => {
     )
   `);
 
+  // ensure 'email' column exists (safe ALTER TABLE)
+  db.all("PRAGMA table_info(accounts)", [], (err, cols) => {
+    if (!err) {
+      const hasEmail = cols.some(c => c.name === 'email');
+      if (!hasEmail) {
+        db.run('ALTER TABLE accounts ADD COLUMN email TEXT', (err) => {
+          if (err) console.error('Failed to add email column to accounts:', err);
+          else console.log('Added email column to accounts table');
+        });
+      }
+    }
+  });
+
   // Création de la table transactions
   db.run(`
     CREATE TABLE IF NOT EXISTS transactions (

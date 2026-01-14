@@ -31,11 +31,11 @@ exports.getBalanceByAccountId = (accountId, callback) => {
 };
 
 exports.create = (account, callback) => {
-  const { name, type } = account;
-  const sql = `INSERT INTO accounts (name, type) VALUES (?, ?)`;
-  db.run(sql, [name, type], function(err) {
+  const { name, type, email } = account;
+  const sql = `INSERT INTO accounts (name, type, email) VALUES (?, ?, ?)`;
+  db.run(sql, [name, type, email || null], function(err) {
     if (err) return callback(err);
-    callback(null, { id: this.lastID, name, type });
+    callback(null, { id: this.lastID, name, type, email: email || null });
   });
 };
 
@@ -56,11 +56,11 @@ exports.getById = (id, callback) => {
 };
 
 exports.update = (id, account, callback) => {
-  const { name, type } = account;
-  const sql = `UPDATE accounts SET name = ?, type = ? WHERE id = ?`;
-  db.run(sql, [name, type, id], function(err) {
+  const { name, type, email } = account;
+  const sql = `UPDATE accounts SET name = ?, type = ?, email = ? WHERE id = ?`;
+  db.run(sql, [name, type, email || null, id], function(err) {
     if (err) return callback(err);
-    callback(null, { id, name, type });
+    callback(null, { id, name, type, email: email || null });
   });
 };
 
