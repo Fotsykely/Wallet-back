@@ -1,4 +1,5 @@
 const db = require('../database/database');
+const { runAsync, allAsync } = require('../utils/dbUtils');
 
 const ALLOWED_TABLES = [
   'accounts',
@@ -20,20 +21,17 @@ const transactionalTables = [
   'budgets'
 ];
 
-const runAsync = (sql, params = []) =>
-  new Promise((resolve, reject) => db.run(sql, params, function (err) {
-    if (err) reject(err);
-    else resolve(this);
-  }));
+exports.runAsync = runAsync;
+exports.allAsync = allAsync;
 
-const allAsync = (sql, params = []) =>
-  new Promise((resolve, reject) => db.all(sql, params, (err, rows) => {
+exports.getAsync = (sql, params = []) => 
+  new Promise((resolve, reject) => db.get(sql, params, (err, row) => {
     if (err) reject(err);
-    else resolve(rows);
+    else resolve(row);
   }));
 
 async function ensureSettingsTable() {
-  await runAsync(`
+  await exports.runAsync(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT
@@ -43,7 +41,7 @@ async function ensureSettingsTable() {
 
 async function getSettings() {
   await ensureSettingsTable();
-  const rows = await allAsync('SELECT key, value FROM settings');
+  const rows = await exports.allAsync('SELECT key, value FROM settings');
   return rows.reduce((acc, r) => ({ ...acc, [r.key]: r.value }), {});
 }
 
@@ -51,14 +49,14 @@ async function saveSetting(key, value) {
   if (!key || typeof key !== 'string') throw new Error('Invalid key');
   await ensureSettingsTable();
   // SQLite friendly "INSERT OR REPLACE"
-  await runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+  await exports.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
   return { key, value };
 }
 
 async function exportAll() {
   const exportData = { version: 1.0, date: new Date().toISOString(), data: {} };
   for (const table of ALLOWED_TABLES) {
-    const rows = await allAsync(`SELECT * FROM ${table}`);
+    const rows = await exports.allAsync(`SELECT * FROM ${table}`);
     exportData.data[table] = rows;
   }
   return exportData;
@@ -74,13 +72,13 @@ async function importAll(payload) {
   return new Promise((resolve, reject) => {
     db.serialize(async () => {
       try {
-        await runAsync('PRAGMA foreign_keys = OFF');
-        await runAsync('BEGIN TRANSACTION');
+        await exports.runAsync('PRAGMA foreign_keys = OFF');
+        await exports.runAsync('BEGIN TRANSACTION');
 
         for (const table of incomingTables) {
           const rows = Array.isArray(payload[table]) ? payload[table] : [];
           // Clear table
-          await runAsync(`DELETE FROM ${table}`);
+          await exports.runAsync(`DELETE FROM ${table}`);
 
           if (rows.length === 0) continue;
 
@@ -98,11 +96,11 @@ async function importAll(payload) {
           stmt.finalize();
         }
 
-        await runAsync('PRAGMA foreign_keys = ON');
-        await runAsync('COMMIT');
+        await exports.runAsync('PRAGMA foreign_keys = ON');
+        await exports.runAsync('COMMIT');
         resolve({ message: 'Import succeeded' });
       } catch (err) {
-        try { await runAsync('ROLLBACK'); } catch (_) {}
+        try { await exports.runAsync('ROLLBACK'); } catch (_) {}
         reject(err);
       }
     });
@@ -110,15 +108,15 @@ async function importAll(payload) {
 }
 
 async function resetTransactionalData() {
-  await runAsync('BEGIN TRANSACTION');
+  await exports.runAsync('BEGIN TRANSACTION');
   try {
     for (const table of transactionalTables) {
-      await runAsync(`DELETE FROM ${table}`);
+      await exports.runAsync(`DELETE FROM ${table}`);
     }
-    await runAsync('COMMIT');
+    await exports.runAsync('COMMIT');
     return { message: 'Transactional data cleared' };
   } catch (err) {
-    await runAsync('ROLLBACK');
+    await exports.runAsync('ROLLBACK');
     throw err;
   }
 }
