@@ -33,6 +33,7 @@ cron.schedule('0 9 * * *', () => {
 //routes
 const transactionsRoutes = require('./routes/transactions');
 const maintenanceRoutes = require('./routes/maintenance'); // Ajout
+const notificationsRoutes = require('./routes/notifications');
 
 app.use('/api/transactions', transactionsRoutes);
 
@@ -54,7 +55,9 @@ app.use('/api/recurrings', recurringRoutes);
 const budgetRoutes = require('./routes/budget');
 app.use('/api/budgets', budgetRoutes);
 
-app.use('/api/maintenance', maintenanceRoutes); // Enregistrement
+app.use('/api/maintenance', maintenanceRoutes);
+
+app.use('/api/notifications', notificationsRoutes);
 
 app.get('/', (req, res) => {
   res.send('API Wallet opérationnelle 🚀');
